@@ -13,7 +13,8 @@ public class CustomerApplicationService(
     ICreateCustomerUseCase,
     IDeleteCustomerUseCase,
     IListCustomersUseCase,
-    IChangePasswordUseCase
+    IChangePasswordUseCase,
+    IChangeCustomerTierUseCase
 {
     public async Task<Customer> CreateCustomerAsync(ICreateCustomerUseCase.Command cmd)
     {
@@ -42,6 +43,14 @@ public class CustomerApplicationService(
         if (passwordHasher.Matches(cmd.RawNewPassword, customer.CurrentPasswordHash))
             throw new PasswordReusedException("New password must differ from the current one");
         customer.ChangePassword(passwordHasher.Hash(cmd.RawNewPassword));
+        await customerRepository.SaveAsync(customer);
+    }
+
+    public async Task ChangeCustomerTierAsync(IChangeCustomerTierUseCase.Command cmd)
+    {
+        var customer = await customerRepository.FindByIdAsync(cmd.CustomerId)
+            ?? throw new CustomerNotFoundException($"Customer not found: {cmd.CustomerId}");
+        customer.ChangeTier(cmd.Tier);
         await customerRepository.SaveAsync(customer);
     }
 }

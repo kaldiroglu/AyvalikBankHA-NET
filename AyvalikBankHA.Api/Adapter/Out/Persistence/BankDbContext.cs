@@ -17,6 +17,7 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
             b.ToTable("customers");
             b.HasKey(c => c.Id);
             b.HasIndex(c => c.Email).IsUnique();
+            b.Property(c => c.Tier).HasMaxLength(16);
         });
 
         mb.Entity<AccountJpaEntity>(b =>
@@ -25,7 +26,11 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
             b.HasKey(a => a.Id);
             b.Property(a => a.Currency).HasMaxLength(8);
             b.Property(a => a.Status).HasMaxLength(16);
+            b.Property(a => a.Type).HasMaxLength(16);
             b.Property(a => a.Balance).HasColumnType("numeric(19,2)");
+            b.Property(a => a.OverdraftLimit).HasColumnType("numeric(19,2)");
+            b.Property(a => a.InterestRate).HasColumnType("numeric(10,6)");
+            b.Property(a => a.Principal).HasColumnType("numeric(19,2)");
         });
 
         mb.Entity<TransactionJpaEntity>(b =>

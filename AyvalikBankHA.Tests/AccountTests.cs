@@ -6,7 +6,7 @@ namespace AyvalikBankHA.Tests;
 
 public class AccountTests
 {
-    private static Account NewUsd() => Account.Open(Guid.NewGuid(), Currency.USD);
+    private static Account NewUsd() => CheckingAccount.Open(Guid.NewGuid(), Currency.USD);
 
     [Fact]
     public void OpensAtZeroAndActive()

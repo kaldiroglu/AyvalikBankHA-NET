@@ -25,11 +25,30 @@ public interface IChangePasswordUseCase
     Task ChangePasswordAsync(Command cmd);
 }
 
-// Account use cases
-public interface ICreateAccountUseCase
+public interface IChangeCustomerTierUseCase
 {
-    record Command(Guid OwnerId, Currency Currency);
-    Task<Account> CreateAccountAsync(Command cmd);
+    record Command(Guid CustomerId, CustomerTier Tier);
+    Task ChangeCustomerTierAsync(Command cmd);
+}
+
+// Account use cases — typed open methods (one per type)
+public interface IOpenCheckingAccountUseCase
+{
+    record Command(Guid OwnerId, Currency Currency, Money OverdraftLimit);
+    Task<CheckingAccount> OpenCheckingAsync(Command cmd);
+}
+
+public interface IOpenSavingsAccountUseCase
+{
+    record Command(Guid OwnerId, Currency Currency, decimal AnnualInterestRate);
+    Task<SavingsAccount> OpenSavingsAsync(Command cmd);
+}
+
+public interface IOpenTimeDepositAccountUseCase
+{
+    record Command(Guid OwnerId, Currency Currency, Money Principal,
+                   DateOnly MaturityDate, decimal AnnualInterestRate);
+    Task<TimeDepositAccount> OpenTimeDepositAsync(Command cmd);
 }
 
 public interface IDepositMoneyUseCase
@@ -68,6 +87,18 @@ public interface IListAccountsUseCase
 public interface IFreezeAccountUseCase  { Task FreezeAccountAsync(Guid accountId); }
 public interface IUnfreezeAccountUseCase { Task UnfreezeAccountAsync(Guid accountId); }
 public interface ICloseAccountUseCase    { Task CloseAccountAsync(Guid accountId); }
+
+public interface IAccrueInterestUseCase
+{
+    record Command(Guid AccountId, int Year, int Month);
+    Task<Transaction> AccrueInterestAsync(Command cmd);
+}
+
+public interface IMatureTimeDepositUseCase
+{
+    record Command(Guid AccountId);
+    Task<Transaction> MatureAsync(Command cmd);
+}
 
 public interface ISetTransferFeeUseCase
 {

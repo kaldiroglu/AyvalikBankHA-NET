@@ -12,10 +12,13 @@ public class AdminController(
     ICreateCustomerUseCase createCustomer,
     IDeleteCustomerUseCase deleteCustomer,
     IListCustomersUseCase listCustomers,
+    IChangeCustomerTierUseCase changeCustomerTier,
     ISetTransferFeeUseCase setTransferFee,
     IFreezeAccountUseCase freezeAccount,
     IUnfreezeAccountUseCase unfreezeAccount,
-    ICloseAccountUseCase closeAccount) : ControllerBase
+    ICloseAccountUseCase closeAccount,
+    IAccrueInterestUseCase accrueInterest,
+    IMatureTimeDepositUseCase matureTimeDeposit) : ControllerBase
 {
     [HttpPost("customers")]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequest req)
@@ -39,6 +42,13 @@ public class AdminController(
         return Ok(list.Select(CustomerResponse.From));
     }
 
+    [HttpPut("customers/{id:guid}/tier")]
+    public async Task<IActionResult> ChangeTier(Guid id, [FromBody] ChangeCustomerTierRequest req)
+    {
+        await changeCustomerTier.ChangeCustomerTierAsync(new IChangeCustomerTierUseCase.Command(id, req.Tier));
+        return Ok();
+    }
+
     [HttpPut("settings/transfer-fee")]
     public async Task<IActionResult> SetTransferFee([FromBody] SetTransferFeeRequest req)
     {
@@ -54,4 +64,18 @@ public class AdminController(
 
     [HttpPut("accounts/{id:guid}/close")]
     public async Task<IActionResult> Close(Guid id) { await closeAccount.CloseAccountAsync(id); return Ok(); }
+
+    [HttpPut("accounts/{id:guid}/accrue-interest")]
+    public async Task<IActionResult> AccrueInterest(Guid id, [FromBody] AccrueInterestRequest req)
+    {
+        var tx = await accrueInterest.AccrueInterestAsync(new IAccrueInterestUseCase.Command(id, req.Year, req.Month));
+        return Ok(TransactionResponse.From(tx));
+    }
+
+    [HttpPut("accounts/{id:guid}/mature")]
+    public async Task<IActionResult> Mature(Guid id)
+    {
+        var tx = await matureTimeDeposit.MatureAsync(new IMatureTimeDepositUseCase.Command(id));
+        return Ok(TransactionResponse.From(tx));
+    }
 }

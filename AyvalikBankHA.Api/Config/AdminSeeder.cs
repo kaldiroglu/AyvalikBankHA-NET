@@ -21,6 +21,7 @@ public static class AdminSeeder
                 Name = "System Admin",
                 Email = AdminEmail,
                 Role = "ADMIN",
+                Tier = "STANDARD",
                 CurrentPassword = hasher.Hash(AdminPassword)
             });
         }

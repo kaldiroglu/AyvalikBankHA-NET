@@ -12,7 +12,7 @@ public class CustomerPersistenceAdapter(BankDbContext db) : ICustomerRepositoryP
         var jpa = CustomerMapper.ToJpa(customer);
         var existing = await db.Customers.FindAsync(jpa.Id);
         if (existing is null) db.Customers.Add(jpa);
-        else { existing.Name = jpa.Name; existing.Email = jpa.Email; existing.Role = jpa.Role; existing.CurrentPassword = jpa.CurrentPassword; }
+        else { existing.Name = jpa.Name; existing.Email = jpa.Email; existing.Role = jpa.Role; existing.Tier = jpa.Tier; existing.CurrentPassword = jpa.CurrentPassword; }
         await db.SaveChangesAsync();
         return CustomerMapper.ToDomain(jpa);
     }
@@ -48,7 +48,21 @@ public class AccountPersistenceAdapter(BankDbContext db) : IAccountRepositoryPor
         var jpa = AccountMapper.ToJpa(account);
         var existing = await db.Accounts.FindAsync(jpa.Id);
         if (existing is null) db.Accounts.Add(jpa);
-        else { existing.OwnerId = jpa.OwnerId; existing.Currency = jpa.Currency; existing.Balance = jpa.Balance; existing.Status = jpa.Status; }
+        else
+        {
+            existing.OwnerId = jpa.OwnerId;
+            existing.Currency = jpa.Currency;
+            existing.Balance = jpa.Balance;
+            existing.Status = jpa.Status;
+            existing.Type = jpa.Type;
+            existing.OverdraftLimit = jpa.OverdraftLimit;
+            existing.InterestRate = jpa.InterestRate;
+            existing.LastAccrualDate = jpa.LastAccrualDate;
+            existing.Principal = jpa.Principal;
+            existing.OpenedOn = jpa.OpenedOn;
+            existing.MaturityDate = jpa.MaturityDate;
+            existing.Matured = jpa.Matured;
+        }
         await db.SaveChangesAsync();
         return AccountMapper.ToDomain(jpa);
     }

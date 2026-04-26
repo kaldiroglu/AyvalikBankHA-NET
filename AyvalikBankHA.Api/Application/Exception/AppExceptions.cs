@@ -7,3 +7,5 @@ public class InsufficientFundsException(string message) : System.Exception(messa
 public class InvalidPasswordException(string message) : System.Exception(message);
 public class PasswordReusedException(string message) : System.Exception(message);
 public class UnauthorizedAccessException(string message) : System.Exception(message);
+public class InvalidAccountOperationException(string message) : System.Exception(message);
+public class LimitExceededException(string message) : System.Exception(message);

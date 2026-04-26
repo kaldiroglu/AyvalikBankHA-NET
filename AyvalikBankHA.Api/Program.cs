@@ -33,9 +33,12 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationServic
 builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IDeleteCustomerUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IListCustomersUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IChangePasswordUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IChangeCustomerTierUseCase);
 
 builder.Services.AddScoped<AccountApplicationService>();
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ICreateAccountUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IOpenCheckingAccountUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IOpenSavingsAccountUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IOpenTimeDepositAccountUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IDepositMoneyUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IWithdrawMoneyUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ITransferMoneyUseCase);
@@ -45,6 +48,8 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IFreezeAccountUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IUnfreezeAccountUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ICloseAccountUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IAccrueInterestUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IMatureTimeDepositUseCase);
 builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ISetTransferFeeUseCase);
 
 // Auth

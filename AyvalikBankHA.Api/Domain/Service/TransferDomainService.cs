@@ -4,10 +4,27 @@ namespace AyvalikBankHA.Api.Domain.Service;
 
 public class TransferDomainService
 {
-    public Money CalculateFee(Money amount, bool sameCustomer, decimal feePercent)
+    public Money CalculateFee(Money amount, bool sameCustomer, decimal feePercent, CustomerTier sourceTier)
     {
         if (sameCustomer) return Money.Zero(amount.Currency);
-        var fee = Math.Round(amount.Amount * feePercent / 100m, 2, MidpointRounding.AwayFromZero);
+        var scaledPercent = feePercent * sourceTier.FeeMultiplier();
+        var fee = Math.Round(amount.Amount * scaledPercent / 100m, 2, MidpointRounding.AwayFromZero);
         return new Money(fee, amount.Currency);
+    }
+
+    public void RequireTransferWithinLimit(Money amount, CustomerTier tier)
+    {
+        var cap = tier.MaxPerTransfer();
+        if (cap is not null && amount.Amount > cap.Value)
+            throw new InvalidOperationException(
+                $"Transfer amount {amount.Amount} exceeds {tier} tier limit of {cap}");
+    }
+
+    public void RequireWithdrawalWithinLimit(Money amount, CustomerTier tier)
+    {
+        var cap = tier.MaxPerWithdrawal();
+        if (cap is not null && amount.Amount > cap.Value)
+            throw new InvalidOperationException(
+                $"Withdrawal amount {amount.Amount} exceeds {tier} tier limit of {cap}");
     }
 }

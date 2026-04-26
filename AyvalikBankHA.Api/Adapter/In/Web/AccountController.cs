@@ -10,7 +10,9 @@ namespace AyvalikBankHA.Api.Adapter.In.Web;
 [Route("api")]
 [Authorize(Roles = "CUSTOMER")]
 public class AccountController(
-    ICreateAccountUseCase createAccount,
+    IOpenCheckingAccountUseCase openChecking,
+    IOpenSavingsAccountUseCase openSavings,
+    IOpenTimeDepositAccountUseCase openTimeDeposit,
     IDepositMoneyUseCase depositMoney,
     IWithdrawMoneyUseCase withdrawMoney,
     ITransferMoneyUseCase transferMoney,
@@ -18,10 +20,26 @@ public class AccountController(
     IGetTransactionsUseCase getTransactions,
     IListAccountsUseCase listAccounts) : ControllerBase
 {
-    [HttpPost("accounts")]
-    public async Task<IActionResult> Create([FromQuery] Guid ownerId, [FromBody] CreateAccountRequest req)
+    [HttpPost("accounts/checking")]
+    public async Task<IActionResult> CreateChecking([FromQuery] Guid ownerId, [FromBody] CreateCheckingAccountRequest req)
     {
-        var a = await createAccount.CreateAccountAsync(new ICreateAccountUseCase.Command(ownerId, req.Currency));
+        var od = new Money(req.OverdraftLimit ?? 0m, req.Currency);
+        var a = await openChecking.OpenCheckingAsync(new IOpenCheckingAccountUseCase.Command(ownerId, req.Currency, od));
+        return StatusCode(201, AccountResponse.From(a));
+    }
+
+    [HttpPost("accounts/savings")]
+    public async Task<IActionResult> CreateSavings([FromQuery] Guid ownerId, [FromBody] CreateSavingsAccountRequest req)
+    {
+        var a = await openSavings.OpenSavingsAsync(new IOpenSavingsAccountUseCase.Command(ownerId, req.Currency, req.AnnualInterestRate));
+        return StatusCode(201, AccountResponse.From(a));
+    }
+
+    [HttpPost("accounts/time-deposit")]
+    public async Task<IActionResult> CreateTimeDeposit([FromQuery] Guid ownerId, [FromBody] CreateTimeDepositAccountRequest req)
+    {
+        var a = await openTimeDeposit.OpenTimeDepositAsync(new IOpenTimeDepositAccountUseCase.Command(
+            ownerId, req.Currency, new Money(req.Principal, req.Currency), req.MaturityDate, req.AnnualInterestRate));
         return StatusCode(201, AccountResponse.From(a));
     }
 
