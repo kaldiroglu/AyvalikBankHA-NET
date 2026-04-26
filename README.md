@@ -53,15 +53,15 @@ AyvalikBankHA.Tests/
 
 ## Architectural notes
 
-- **Rich domain entities** — `Account` owns its invariants (state machine, balance math, currency-mismatch guards) via business methods, not setters
-- **Value object `Money`** — `decimal` + `Currency`, with arithmetic and same-currency guard
-- **Ports at every boundary** — controllers depend on `ICreateAccountUseCase`, application services on `IAccountRepositoryPort`/`IPasswordHasherPort`
-- **Persistence adapter has its own `JpaEntities`** that map to/from domain entities; the EF Core types never cross the persistence boundary
-- **Composition root in `Program.cs`** — every concrete implementation is wired here, where the architecture meets the framework
+- **Sealed `Account` hierarchy** — `abstract class Account` + `sealed class CheckingAccount / SavingsAccount / TimeDepositAccount` mirror Java's sealed permits. Each subtype owns its own deposit/withdraw/transferOut behavior.
+- **State pattern for status** — `AccountState` abstract + `ActiveState / FrozenState / ClosedState` sealed singletons (private ctor + public static `Instance`). `Account.Status` delegates to `State`; `CLOSED` is terminal.
+- **Customer tiers** — `STANDARD / PREMIUM / PRIVATE` with extension-method policy data: `FeeMultiplier()` (1.0×/0.5×/0.0×) and per-transaction caps (5k/50k/unlimited transfer; 5k/25k/unlimited withdrawal). Same-customer transfers are always free.
+- **Value object `Money`** — `decimal` + `Currency`, with arithmetic and same-currency guard.
+- **Ports at every boundary** — controllers depend on use-case interfaces; application services on `IAccountRepositoryPort`/`IPasswordHasherPort`.
+- **Persistence adapter has its own `JpaEntities`** that map to/from domain entities; the EF Core types never cross the persistence boundary. Account JpaEntity carries an `AccountType` discriminator + 7 nullable type-specific columns; the mapper switches on `AccountType` to construct the right subtype.
+- **Composition root in `Program.cs`** — every concrete implementation is wired here, where the architecture meets the framework.
 
 ## Endpoints
-
-(Same surface as `AyvalikBankHA1`. Account types, customer tiers, and the State pattern for AccountStatus are not yet ported — see "Next steps" below.)
 
 | Method | Path | Role |
 |---|---|---|
@@ -72,8 +72,13 @@ AyvalikBankHA.Tests/
 | PUT | `/api/admin/accounts/{id}/freeze` | ADMIN |
 | PUT | `/api/admin/accounts/{id}/unfreeze` | ADMIN |
 | PUT | `/api/admin/accounts/{id}/close` | ADMIN |
+| PUT | `/api/admin/customers/{id}/tier` | ADMIN |
+| PUT | `/api/admin/accounts/{id}/accrue-interest` | ADMIN |
+| PUT | `/api/admin/accounts/{id}/mature` | ADMIN |
 | PUT | `/api/customers/{id}/password` | CUSTOMER |
-| POST | `/api/accounts?ownerId=` | CUSTOMER |
+| POST | `/api/accounts/checking?ownerId=` | CUSTOMER |
+| POST | `/api/accounts/savings?ownerId=` | CUSTOMER |
+| POST | `/api/accounts/time-deposit?ownerId=` | CUSTOMER |
 | GET | `/api/customers/{id}/accounts` | CUSTOMER |
 | GET | `/api/accounts/{id}/balance` | CUSTOMER |
 | POST | `/api/accounts/{id}/deposit` | CUSTOMER |
@@ -81,10 +86,12 @@ AyvalikBankHA.Tests/
 | POST | `/api/accounts/{id}/transfer` | CUSTOMER |
 | GET | `/api/accounts/{id}/transactions` | CUSTOMER |
 
-## Next steps (not yet ported from `AyvalikBankHA1`)
+## Test coverage
 
-- **Account types** sealed hierarchy (CHECKING / SAVINGS / TIME_DEPOSIT) with overdraft, monthly interest accrual, time-deposit maturation
-- **State pattern** for `AccountStatus` (`AccountState` interface + `ActiveState`/`FrozenState`/`ClosedState` singletons)
-- **Customer tiers** (STANDARD / PREMIUM / PRIVATE) with fee multiplier and per-transaction caps
-- More tests (currently 19; Java sibling has 176)
-- Integration tests with `WebApplicationFactory`
+66 unit tests (xUnit + FluentAssertions), covering:
+- Money arithmetic and currency guards
+- Password validation
+- Account state transitions (State pattern)
+- Per-subtype invariants: checking overdraft, savings monthly accrual, time-deposit lock + maturation
+- TransferDomainService tier-aware fees and per-transaction limits
+- Customer tier mutation
