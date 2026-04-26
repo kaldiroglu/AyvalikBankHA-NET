@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: ayvalikbank-ha-net-postgres
+    environment:
+      POSTGRES_USER: bankuser
+      POSTGRES_PASSWORD: bankpass
+      POSTGRES_DB: ayvalikbank_ha_net
+    ports:
+      - "5434:5432"
+    volumes:
+      - ayvalikbank_ha_net_data:/var/lib/postgresql/data
+
+volumes:
+  ayvalikbank_ha_net_data:
