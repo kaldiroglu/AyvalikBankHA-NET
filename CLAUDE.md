@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## Project
 
-**Ayvalık Bank HA-NET** — .NET 9 / ASP.NET Core port of `AyvalikBankHA1` (the Java/Spring Boot hexagonal project). Same use cases, same architectural discipline.
+**Ayvalık Bank HA-NET** — .NET 9 / ASP.NET Core port of `AyvalikBankHA-JAVA` (the Java/Spring Boot hexagonal project). Same use cases, same architectural discipline.
 
 ## Commands
 

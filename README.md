@@ -1,6 +1,6 @@
 # Ayvalık Bank HA-NET
 
-A banking application built as a learning project to demonstrate **Hexagonal Architecture (Ports & Adapters)** in **.NET 9 / ASP.NET Core**. .NET counterpart to `AyvalikBankHA1` (Java/Spring Boot).
+A banking application built as a learning project to demonstrate **Hexagonal Architecture (Ports & Adapters)** in **.NET 9 / ASP.NET Core**. .NET counterpart to `AyvalikBankHA-JAVA` (Java/Spring Boot).
 
 ## Tech Stack
 

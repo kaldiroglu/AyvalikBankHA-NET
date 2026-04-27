@@ -1,6 +1,6 @@
 # Architecture — Ayvalık Bank HA-NET
 
-A .NET 9 / ASP.NET Core port of `AyvalikBankHA1`, organized as **Hexagonal Architecture (Ports & Adapters)**. Every dependency points inward toward the domain.
+A .NET 9 / ASP.NET Core port of `AyvalikBankHA-JAVA`, organized as **Hexagonal Architecture (Ports & Adapters)**. Every dependency points inward toward the domain.
 
 ---
 
