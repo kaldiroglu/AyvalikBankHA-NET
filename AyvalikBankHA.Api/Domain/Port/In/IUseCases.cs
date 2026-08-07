@@ -21,7 +21,7 @@ public interface IListCustomersUseCase
 
 public interface IChangePasswordUseCase
 {
-    record Command(Guid CustomerId, string RawNewPassword);
+    record Command(Guid CallerId, Guid CustomerId, string RawNewPassword);
     Task ChangePasswordAsync(Command cmd);
 }
 
@@ -34,54 +34,54 @@ public interface IChangeCustomerTierUseCase
 // Account use cases — typed open methods (one per type)
 public interface IOpenCheckingAccountUseCase
 {
-    record Command(Guid OwnerId, Currency Currency, Money OverdraftLimit);
+    record Command(Guid CallerId, Currency Currency, Money OverdraftLimit);
     Task<CheckingAccount> OpenCheckingAsync(Command cmd);
 }
 
 public interface IOpenSavingsAccountUseCase
 {
-    record Command(Guid OwnerId, Currency Currency, decimal AnnualInterestRate);
+    record Command(Guid CallerId, Currency Currency, decimal AnnualInterestRate);
     Task<SavingsAccount> OpenSavingsAsync(Command cmd);
 }
 
 public interface IOpenTimeDepositAccountUseCase
 {
-    record Command(Guid OwnerId, Currency Currency, Money Principal,
+    record Command(Guid CallerId, Currency Currency, Money Principal,
                    DateOnly MaturityDate, decimal AnnualInterestRate);
     Task<TimeDepositAccount> OpenTimeDepositAsync(Command cmd);
 }
 
 public interface IDepositMoneyUseCase
 {
-    record Command(Guid AccountId, Money Amount);
+    record Command(Guid CallerId, Guid AccountId, Money Amount);
     Task<Transaction> DepositAsync(Command cmd);
 }
 
 public interface IWithdrawMoneyUseCase
 {
-    record Command(Guid AccountId, Money Amount);
+    record Command(Guid CallerId, Guid AccountId, Money Amount);
     Task<Transaction> WithdrawAsync(Command cmd);
 }
 
 public interface ITransferMoneyUseCase
 {
-    record Command(Guid SourceAccountId, Guid TargetAccountId, Money Amount);
+    record Command(Guid CallerId, Guid SourceAccountId, Guid TargetAccountId, Money Amount);
     Task TransferAsync(Command cmd);
 }
 
 public interface IGetBalanceUseCase
 {
-    Task<Money> GetBalanceAsync(Guid accountId);
+    Task<Money> GetBalanceAsync(Guid callerId, Guid accountId);
 }
 
 public interface IGetTransactionsUseCase
 {
-    Task<List<Transaction>> GetTransactionsAsync(Guid accountId);
+    Task<List<Transaction>> GetTransactionsAsync(Guid callerId, Guid accountId);
 }
 
 public interface IListAccountsUseCase
 {
-    Task<List<Account>> ListAccountsAsync(Guid ownerId);
+    Task<List<Account>> ListAccountsAsync(Guid callerId, Guid ownerId);
 }
 
 public interface IFreezeAccountUseCase  { Task FreezeAccountAsync(Guid accountId); }

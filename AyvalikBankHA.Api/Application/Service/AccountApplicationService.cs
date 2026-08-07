@@ -32,22 +32,22 @@ public class AccountApplicationService(
 
     public async Task<CheckingAccount> OpenCheckingAsync(IOpenCheckingAccountUseCase.Command cmd)
     {
-        await RequireCustomerExistsAsync(cmd.OwnerId);
-        var account = CheckingAccount.Open(cmd.OwnerId, cmd.Currency, cmd.OverdraftLimit);
+        await RequireCustomerExistsAsync(cmd.CallerId);
+        var account = CheckingAccount.Open(cmd.CallerId, cmd.Currency, cmd.OverdraftLimit);
         return (CheckingAccount)await accountRepository.SaveAsync(account);
     }
 
     public async Task<SavingsAccount> OpenSavingsAsync(IOpenSavingsAccountUseCase.Command cmd)
     {
-        await RequireCustomerExistsAsync(cmd.OwnerId);
-        var account = SavingsAccount.Open(cmd.OwnerId, cmd.Currency, cmd.AnnualInterestRate);
+        await RequireCustomerExistsAsync(cmd.CallerId);
+        var account = SavingsAccount.Open(cmd.CallerId, cmd.Currency, cmd.AnnualInterestRate);
         return (SavingsAccount)await accountRepository.SaveAsync(account);
     }
 
     public async Task<TimeDepositAccount> OpenTimeDepositAsync(IOpenTimeDepositAccountUseCase.Command cmd)
     {
-        await RequireCustomerExistsAsync(cmd.OwnerId);
-        var account = TimeDepositAccount.Open(cmd.OwnerId, cmd.Currency, cmd.Principal,
+        await RequireCustomerExistsAsync(cmd.CallerId);
+        var account = TimeDepositAccount.Open(cmd.CallerId, cmd.Currency, cmd.Principal,
             cmd.MaturityDate, cmd.AnnualInterestRate);
         return (TimeDepositAccount)await accountRepository.SaveAsync(account);
     }
@@ -57,6 +57,7 @@ public class AccountApplicationService(
     public async Task<Transaction> DepositAsync(IDepositMoneyUseCase.Command cmd)
     {
         var account = await Find(cmd.AccountId);
+        RequireOwner(account, cmd.CallerId);
         Transaction tx;
         try { tx = account.Deposit(cmd.Amount); }
         catch (InvalidOperationException e) when (e.Message.Contains("locked"))
@@ -69,6 +70,7 @@ public class AccountApplicationService(
     public async Task<Transaction> WithdrawAsync(IWithdrawMoneyUseCase.Command cmd)
     {
         var account = await Find(cmd.AccountId);
+        RequireOwner(account, cmd.CallerId);
         var owner = await FindCustomer(account.OwnerId);
         try { transferDomainService.RequireWithdrawalWithinLimit(cmd.Amount, owner.Tier); }
         catch (InvalidOperationException e) { throw new LimitExceededException(e.Message); }
@@ -85,6 +87,9 @@ public class AccountApplicationService(
     public async Task TransferAsync(ITransferMoneyUseCase.Command cmd)
     {
         var source = await Find(cmd.SourceAccountId);
+        RequireOwner(source, cmd.CallerId);
+        // The TARGET is deliberately NOT ownership-checked: sending money to another
+        // customer is the entire point of a transfer.
         var target = await Find(cmd.TargetAccountId);
         var sourceOwner = await FindCustomer(source.OwnerId);
 
@@ -112,16 +117,22 @@ public class AccountApplicationService(
         await transactionRepository.SaveAsync(inTx);
     }
 
-    public async Task<Money> GetBalanceAsync(Guid accountId) => (await Find(accountId)).Balance;
-
-    public async Task<List<Transaction>> GetTransactionsAsync(Guid accountId)
+    public async Task<Money> GetBalanceAsync(Guid callerId, Guid accountId)
     {
-        await Find(accountId);
+        var account = await Find(accountId);
+        RequireOwner(account, callerId);
+        return account.Balance;
+    }
+
+    public async Task<List<Transaction>> GetTransactionsAsync(Guid callerId, Guid accountId)
+    {
+        RequireOwner(await Find(accountId), callerId);
         return await transactionRepository.FindByAccountIdAsync(accountId);
     }
 
-    public async Task<List<Account>> ListAccountsAsync(Guid ownerId)
+    public async Task<List<Account>> ListAccountsAsync(Guid callerId, Guid ownerId)
     {
+        RequireSelf(ownerId, callerId);
         await RequireCustomerExistsAsync(ownerId);
         return await accountRepository.FindByOwnerIdAsync(ownerId);
     }
@@ -176,6 +187,20 @@ public class AccountApplicationService(
 
     public Task SetTransferFeeAsync(ISetTransferFeeUseCase.Command cmd) =>
         settingsRepository.SetTransferFeePercentAsync(cmd.FeePercent);
+
+    // Security: the caller must own the account. Mirrors the Java fix - see
+    // AyvalikBankHA-JAVA Refactorings.md entry 3.
+    private static void RequireOwner(Account account, Guid callerId)
+    {
+        if (account.OwnerId != callerId)
+            throw new AyvalikBankHA.Api.Application.Exception.UnauthorizedAccessException("Account does not belong to the caller");
+    }
+
+    private static void RequireSelf(Guid subject, Guid callerId)
+    {
+        if (subject != callerId)
+            throw new AyvalikBankHA.Api.Application.Exception.UnauthorizedAccessException("Callers may only act on their own customer record");
+    }
 
     private async Task RequireCustomerExistsAsync(Guid id)
     {

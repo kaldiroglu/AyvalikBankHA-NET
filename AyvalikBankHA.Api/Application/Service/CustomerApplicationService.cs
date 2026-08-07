@@ -36,6 +36,11 @@ public class CustomerApplicationService(
 
     public async Task ChangePasswordAsync(IChangePasswordUseCase.Command cmd)
     {
+        // Security: checked BEFORE the lookup so a caller cannot probe which customer ids
+        // exist by distinguishing 404 from 403.
+        if (cmd.CustomerId != cmd.CallerId)
+            throw new AyvalikBankHA.Api.Application.Exception.UnauthorizedAccessException("Callers may only change their own password");
+
         try { passwordValidationService.Validate(cmd.RawNewPassword); }
         catch (ArgumentException e) { throw new InvalidPasswordException(e.Message); }
         var customer = await customerRepository.FindByIdAsync(cmd.CustomerId)
