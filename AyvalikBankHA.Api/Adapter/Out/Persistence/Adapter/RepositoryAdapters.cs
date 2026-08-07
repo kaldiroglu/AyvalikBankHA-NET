@@ -62,14 +62,19 @@ public class AccountPersistenceAdapter(BankDbContext db) : IAccountRepositoryPor
             existing.OpenedOn = jpa.OpenedOn;
             existing.MaturityDate = jpa.MaturityDate;
             existing.Matured = jpa.Matured;
+            existing.Version++;
         }
         await db.SaveChangesAsync();
         return AccountMapper.ToDomain(jpa);
     }
 
+    // Deliberately NOT AsNoTracking: the entity must stay in the change tracker so that the
+    // version SaveAsync checks is the one this read observed. With AsNoTracking, SaveAsync's
+    // own lookup would fetch the *current* version and the conflict would go undetected -
+    // a token that increments but never catches anything.
     public async Task<Account?> FindByIdAsync(Guid id)
     {
-        var jpa = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+        var jpa = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id);
         return jpa is null ? null : AccountMapper.ToDomain(jpa);
     }
 
