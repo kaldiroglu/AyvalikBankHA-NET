@@ -185,8 +185,15 @@ public class AccountApplicationService(
         return await transactionRepository.SaveAsync(tx);
     }
 
-    public Task SetTransferFeeAsync(ISetTransferFeeUseCase.Command cmd) =>
-        settingsRepository.SetTransferFeePercentAsync(cmd.FeePercent);
+    public Task SetTransferFeeAsync(ISetTransferFeeUseCase.Command cmd)
+    {
+        // Defence in depth. The DTO's [Range] already rejects a negative percentage over REST, so
+        // this guard is unreachable from the API - which is exactly why it needs its own test.
+        // Matches AyvalikBankHA-JAVA; see its Refactorings.md entry 2.
+        if (cmd.FeePercent < 0m)
+            throw new ArgumentException("Transfer fee percent cannot be negative");
+        return settingsRepository.SetTransferFeePercentAsync(cmd.FeePercent);
+    }
 
     // Security: the caller must own the account. Mirrors the Java fix - see
     // AyvalikBankHA-JAVA Refactorings.md entry 3.
