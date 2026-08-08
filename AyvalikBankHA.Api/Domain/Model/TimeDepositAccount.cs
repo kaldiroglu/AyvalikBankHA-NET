@@ -37,19 +37,19 @@ public sealed class TimeDepositAccount : Account
     public override AccountType Type => AccountType.TIME_DEPOSIT;
 
     public override Transaction Deposit(Money amount) =>
-        throw new InvalidOperationException("Time deposit principal is locked — further deposits are not allowed");
+        throw new OperationNotPermittedException("Time deposit principal is locked — further deposits are not allowed");
 
     public override Transaction TransferOut(Money amount, Money fee, Guid targetAccountId) =>
-        throw new InvalidOperationException("Time deposit accounts do not support transfers");
+        throw new OperationNotPermittedException("Time deposit accounts do not support transfers");
 
     public override Transaction Withdraw(Money amount)
     {
         RequireOperable();
-        if (!Matured) throw new InvalidOperationException("Time deposit has not matured");
+        if (!Matured) throw new OperationNotPermittedException("Time deposit has not matured");
         RequireSameCurrency(amount);
         if (amount.Amount <= 0) throw new ArgumentException("Withdrawal amount must be positive");
         if (!Balance.IsGreaterThanOrEqualTo(amount))
-            throw new InvalidOperationException("Insufficient funds");
+            throw new InsufficientBalanceException("Insufficient funds");
         Balance = Balance.Subtract(amount);
         return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount, "Withdrawal");
     }
@@ -57,9 +57,9 @@ public sealed class TimeDepositAccount : Account
     public Transaction Mature(DateOnly today)
     {
         // FROZEN accounts can still mature: it's a date-driven system action.
-        if (IsTerminal) throw new InvalidOperationException("Cannot mature a closed account");
-        if (Matured) throw new InvalidOperationException("Account is already matured");
-        if (today < MaturityDate) throw new InvalidOperationException("Maturity date not yet reached");
+        if (IsTerminal) throw new AccountNotActiveException("Cannot mature a closed account");
+        if (Matured) throw new OperationNotPermittedException("Account is already matured");
+        if (today < MaturityDate) throw new OperationNotPermittedException("Maturity date not yet reached");
 
         var months = (MaturityDate.Year - OpenedOn.Year) * 12 + (MaturityDate.Month - OpenedOn.Month);
         var years = (decimal)months / 12;

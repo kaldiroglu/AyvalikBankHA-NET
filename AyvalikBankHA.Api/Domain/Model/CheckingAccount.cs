@@ -40,8 +40,8 @@ public sealed class CheckingAccount : Account
         if (projected < floor)
         {
             if (OverdraftLimit.Amount == 0)
-                throw new InvalidOperationException("Insufficient funds");
-            throw new InvalidOperationException("Withdrawal exceeds overdraft limit");
+                throw new InsufficientBalanceException("Insufficient funds");
+            throw new InsufficientBalanceException("Withdrawal exceeds overdraft limit");
         }
         Balance = new Money(projected, Currency);
         return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount, "Withdrawal");
@@ -55,7 +55,7 @@ public sealed class CheckingAccount : Account
         var projected = Balance.Amount - totalDebit.Amount;
         var floor = -OverdraftLimit.Amount;
         if (projected < floor)
-            throw new InvalidOperationException("Insufficient funds for transfer including fee");
+            throw new InsufficientBalanceException("Insufficient funds for transfer including fee");
         Balance = new Money(projected, Currency);
         var desc = $"Transfer out to {targetAccountId}" + (fee.Amount > 0 ? $" (fee: {fee.Amount})" : "");
         return Transaction.Create(Id, TransactionType.TRANSFER_OUT, amount, desc);

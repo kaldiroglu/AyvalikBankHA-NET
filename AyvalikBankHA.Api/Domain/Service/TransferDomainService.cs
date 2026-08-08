@@ -16,7 +16,7 @@ public class TransferDomainService
     {
         var cap = tier.MaxPerTransfer();
         if (cap is not null && amount.Amount > cap.Value)
-            throw new InvalidOperationException(
+            throw new TransactionLimitExceededException(
                 $"Transfer amount {amount.Amount} exceeds {tier} tier limit of {cap}");
     }
 
@@ -24,7 +24,7 @@ public class TransferDomainService
     {
         var cap = tier.MaxPerWithdrawal();
         if (cap is not null && amount.Amount > cap.Value)
-            throw new InvalidOperationException(
+            throw new TransactionLimitExceededException(
                 $"Withdrawal amount {amount.Amount} exceeds {tier} tier limit of {cap}");
     }
 }

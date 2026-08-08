@@ -60,9 +60,7 @@ public class AccountApplicationService(
         RequireOwner(account, cmd.CallerId);
         Transaction tx;
         try { tx = account.Deposit(cmd.Amount); }
-        catch (InvalidOperationException e) when (e.Message.Contains("locked"))
-        { throw new InvalidAccountOperationException(e.Message); }
-        catch (InvalidOperationException e) { throw new AccountNotOperableException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(account);
         return await transactionRepository.SaveAsync(tx);
     }
@@ -73,13 +71,11 @@ public class AccountApplicationService(
         RequireOwner(account, cmd.CallerId);
         var owner = await FindCustomer(account.OwnerId);
         try { transferDomainService.RequireWithdrawalWithinLimit(cmd.Amount, owner.Tier); }
-        catch (InvalidOperationException e) { throw new LimitExceededException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
 
         Transaction tx;
         try { tx = account.Withdraw(cmd.Amount); }
-        catch (InvalidOperationException e) when (e.Message.Contains("frozen") || e.Message.Contains("closed") || e.Message.Contains("matured"))
-        { throw new AccountNotOperableException(e.Message); }
-        catch (InvalidOperationException e) { throw new InsufficientFundsException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(account);
         return await transactionRepository.SaveAsync(tx);
     }
@@ -94,7 +90,7 @@ public class AccountApplicationService(
         var sourceOwner = await FindCustomer(source.OwnerId);
 
         try { transferDomainService.RequireTransferWithinLimit(cmd.Amount, sourceOwner.Tier); }
-        catch (InvalidOperationException e) { throw new LimitExceededException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
 
         var sameCustomer = source.OwnerId == target.OwnerId;
         var feePercent = await settingsRepository.GetTransferFeePercentAsync();
@@ -106,10 +102,7 @@ public class AccountApplicationService(
             outTx = source.TransferOut(cmd.Amount, fee, target.Id);
             inTx = target.TransferIn(cmd.Amount, source.Id);
         }
-        catch (InvalidOperationException e) when (e.Message.Contains("frozen") || e.Message.Contains("closed") || e.Message.Contains("transfers"))
-        { throw new AccountNotOperableException(e.Message); }
-        catch (InvalidOperationException e)
-        { throw new InsufficientFundsException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
 
         await accountRepository.SaveAsync(source);
         await accountRepository.SaveAsync(target);
@@ -141,7 +134,7 @@ public class AccountApplicationService(
     {
         var account = await Find(accountId);
         try { account.Freeze(); }
-        catch (InvalidOperationException e) { throw new AccountNotOperableException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(account);
     }
 
@@ -149,7 +142,7 @@ public class AccountApplicationService(
     {
         var account = await Find(accountId);
         try { account.Unfreeze(); }
-        catch (InvalidOperationException e) { throw new AccountNotOperableException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(account);
     }
 
@@ -157,7 +150,7 @@ public class AccountApplicationService(
     {
         var account = await Find(accountId);
         try { account.Close(); }
-        catch (InvalidOperationException e) { throw new AccountNotOperableException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(account);
     }
 
@@ -168,7 +161,7 @@ public class AccountApplicationService(
             throw new InvalidAccountOperationException("Account is not a savings account");
         Transaction tx;
         try { tx = savings.AccrueInterest(cmd.Year, cmd.Month); }
-        catch (InvalidOperationException e) { throw new InvalidAccountOperationException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(savings);
         return await transactionRepository.SaveAsync(tx);
     }
@@ -180,7 +173,7 @@ public class AccountApplicationService(
             throw new InvalidAccountOperationException("Account is not a time deposit");
         Transaction tx;
         try { tx = td.Mature(DateOnly.FromDateTime(DateTime.UtcNow)); }
-        catch (InvalidOperationException e) { throw new InvalidAccountOperationException(e.Message); }
+        catch (AccountRuleViolation e) { throw Translate(e); }
         await accountRepository.SaveAsync(td);
         return await transactionRepository.SaveAsync(tx);
     }
@@ -208,6 +201,23 @@ public class AccountApplicationService(
         if (subject != callerId)
             throw new AyvalikBankHA.Api.Application.Exception.UnauthorizedAccessException("Callers may only act on their own customer record");
     }
+
+    /// <summary>
+    /// Maps a domain refusal to the application exception that carries its HTTP meaning.
+    ///
+    /// <para>Replaces a chain of <c>when (e.Message.Contains(...))</c> filters, where rewording a
+    /// message silently changed the response status. C# cannot prove this switch exhaustive over a
+    /// class hierarchy, so the discard arm throws — a missing case fails loudly rather than
+    /// silently falling through. Mirrors AyvalikBankHA-JAVA Refactorings.md entry 4.</para>
+    /// </summary>
+    private static System.Exception Translate(AccountRuleViolation violation) => violation switch
+    {
+        AccountNotActiveException e         => new AccountNotOperableException(e.Message),
+        InsufficientBalanceException e      => new InsufficientFundsException(e.Message),
+        OperationNotPermittedException e    => new InvalidAccountOperationException(e.Message),
+        TransactionLimitExceededException e => new LimitExceededException(e.Message),
+        _ => throw new NotSupportedException($"Unhandled refusal type {violation.GetType().Name}"),
+    };
 
     private async Task RequireCustomerExistsAsync(Guid id)
     {

@@ -37,7 +37,7 @@ public sealed class SavingsAccount : Account
         RequireSameCurrency(amount);
         if (amount.Amount <= 0) throw new ArgumentException("Withdrawal amount must be positive");
         if (!Balance.IsGreaterThanOrEqualTo(amount))
-            throw new InvalidOperationException("Insufficient funds");
+            throw new InsufficientBalanceException("Insufficient funds");
         Balance = Balance.Subtract(amount);
         return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount, "Withdrawal");
     }
@@ -48,7 +48,7 @@ public sealed class SavingsAccount : Account
         RequireSameCurrency(amount);
         var totalDebit = fee.Amount > 0 ? amount.Add(fee) : amount;
         if (!Balance.IsGreaterThanOrEqualTo(totalDebit))
-            throw new InvalidOperationException("Insufficient funds for transfer including fee");
+            throw new InsufficientBalanceException("Insufficient funds for transfer including fee");
         Balance = Balance.Subtract(totalDebit);
         var desc = $"Transfer out to {targetAccountId}" + (fee.Amount > 0 ? $" (fee: {fee.Amount})" : "");
         return Transaction.Create(Id, TransactionType.TRANSFER_OUT, amount, desc);
@@ -57,10 +57,10 @@ public sealed class SavingsAccount : Account
     public Transaction AccrueInterest(int year, int month)
     {
         // FROZEN accounts can still accrue: it's a system action, not a customer action.
-        if (IsTerminal) throw new InvalidOperationException("Cannot accrue interest on a closed account");
+        if (IsTerminal) throw new AccountNotActiveException("Cannot accrue interest on a closed account");
         var firstOfNextMonth = new DateOnly(year, month, 1).AddMonths(1);
         if (LastAccrualDate is { } last && firstOfNextMonth <= last)
-            throw new InvalidOperationException($"Interest already accrued for or after {year:D4}-{month:D2}");
+            throw new OperationNotPermittedException($"Interest already accrued for or after {year:D4}-{month:D2}");
 
         var monthlyRate = AnnualInterestRate / MonthsPerYear;
         var interestAmount = Math.Round(Balance.Amount * monthlyRate, 2, MidpointRounding.AwayFromZero);

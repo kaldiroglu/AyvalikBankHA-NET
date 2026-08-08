@@ -327,4 +327,28 @@ public class AccountApplicationServiceTests
         await act.Should().ThrowAsync<ArgumentException>();
         await _settings.DidNotReceive().SetTransferFeePercentAsync(Arg.Any<decimal>());
     }
+
+    // ── refusal translation ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task A_locked_time_deposit_reports_invalid_operation_not_a_state_problem()
+    {
+        var owner = GivenCustomer();
+        var td = TimeDepositAccount.Open(owner, Currency.USD, new Money(1000m, Currency.USD),
+            DateOnly.FromDateTime(DateTime.UtcNow).AddYears(1), 0.05m);
+        _accounts.FindByIdAsync(td.Id).Returns(td);
+
+        var act = () => _service.DepositAsync(
+            new IDepositMoneyUseCase.Command(owner, td.Id, new Money(10m, Currency.USD)));
+
+        await act.Should().ThrowAsync<InvalidAccountOperationException>();
+    }
+
+    // NOTE: AyvalikBankHA-JAVA has a test proving an unrelated IllegalStateException raised inside
+    // the guarded region propagates as a defect rather than becoming a 422. It cannot be written
+    // here: TransferDomainService's methods are not virtual, so NSubstitute cannot intercept them,
+    // and Mockito's ability to mock non-final classes has no NSubstitute equivalent. Making the
+    // method virtual purely for testability was rejected. The behaviour is still correct - the
+    // service now catches AccountRuleViolation, not InvalidOperationException - it is simply not
+    // directly asserted in this language.
 }
