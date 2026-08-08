@@ -10,13 +10,10 @@ public class CustomerApplicationService(
     ICustomerRepositoryPort customerRepository,
     IPasswordHasherPort passwordHasher,
     PasswordValidationService passwordValidationService) :
-    ICreateCustomerUseCase,
-    IDeleteCustomerUseCase,
-    IListCustomersUseCase,
-    IChangePasswordUseCase,
-    IChangeCustomerTierUseCase
+    ICustomerAdministrationPort,
+    ICustomerSelfServicePort
 {
-    public async Task<Customer> CreateCustomerAsync(ICreateCustomerUseCase.Command cmd)
+    public async Task<Customer> CreateCustomerAsync(ICustomerAdministrationPort.CreateCustomerCommand cmd)
     {
         try { passwordValidationService.Validate(cmd.RawPassword); }
         catch (ArgumentException e) { throw new InvalidPasswordException(e.Message); }
@@ -34,7 +31,7 @@ public class CustomerApplicationService(
 
     public Task<List<Customer>> ListCustomersAsync() => customerRepository.FindAllAsync();
 
-    public async Task ChangePasswordAsync(IChangePasswordUseCase.Command cmd)
+    public async Task ChangePasswordAsync(ICustomerSelfServicePort.ChangePasswordCommand cmd)
     {
         // Security: checked BEFORE the lookup so a caller cannot probe which customer ids
         // exist by distinguishing 404 from 403.
@@ -51,7 +48,7 @@ public class CustomerApplicationService(
         await customerRepository.SaveAsync(customer);
     }
 
-    public async Task ChangeCustomerTierAsync(IChangeCustomerTierUseCase.Command cmd)
+    public async Task ChangeCustomerTierAsync(ICustomerAdministrationPort.ChangeCustomerTierCommand cmd)
     {
         var customer = await customerRepository.FindByIdAsync(cmd.CustomerId)
             ?? throw new CustomerNotFoundException($"Customer not found: {cmd.CustomerId}");

@@ -57,7 +57,7 @@ public class AccountApplicationServiceTests
         var owner = GivenCustomer();
 
         var a = await _service.OpenCheckingAsync(
-            new IOpenCheckingAccountUseCase.Command(owner, Currency.USD, new Money(0m, Currency.USD)));
+            new ICustomerAccountPort.OpenCheckingCommand(owner, Currency.USD, new Money(0m, Currency.USD)));
 
         a.OwnerId.Should().Be(owner);
         await _accounts.Received(1).SaveAsync(Arg.Any<Account>());
@@ -69,7 +69,7 @@ public class AccountApplicationServiceTests
         var owner = GivenCustomer();
 
         var a = await _service.OpenSavingsAsync(
-            new IOpenSavingsAccountUseCase.Command(owner, Currency.USD, 0.05m));
+            new ICustomerAccountPort.OpenSavingsCommand(owner, Currency.USD, 0.05m));
 
         a.Should().BeOfType<SavingsAccount>();
     }
@@ -79,7 +79,7 @@ public class AccountApplicationServiceTests
     {
         var owner = GivenCustomer();
 
-        var a = await _service.OpenTimeDepositAsync(new IOpenTimeDepositAccountUseCase.Command(
+        var a = await _service.OpenTimeDepositAsync(new ICustomerAccountPort.OpenTimeDepositCommand(
             owner, Currency.USD, new Money(1000m, Currency.USD),
             DateOnly.FromDateTime(DateTime.UtcNow).AddYears(1), 0.05m));
 
@@ -93,7 +93,7 @@ public class AccountApplicationServiceTests
         _customers.ExistsByIdAsync(unknown).Returns(false);
 
         var act = () => _service.OpenCheckingAsync(
-            new IOpenCheckingAccountUseCase.Command(unknown, Currency.USD, new Money(0m, Currency.USD)));
+            new ICustomerAccountPort.OpenCheckingCommand(unknown, Currency.USD, new Money(0m, Currency.USD)));
 
         await act.Should().ThrowAsync<CustomerNotFoundException>();
     }
@@ -107,7 +107,7 @@ public class AccountApplicationServiceTests
         var a = GivenChecking(owner);
 
         var tx = await _service.DepositAsync(
-            new IDepositMoneyUseCase.Command(owner, a.Id, TransactionAmount.Of(200m, Currency.USD)));
+            new ICustomerAccountPort.DepositCommand(owner, a.Id, TransactionAmount.Of(200m, Currency.USD)));
 
         tx.Type.Should().Be(TransactionType.DEPOSIT);
         a.Balance.Amount.Should().Be(200m);
@@ -121,7 +121,7 @@ public class AccountApplicationServiceTests
         _accounts.FindByIdAsync(id).Returns((Account?)null);
 
         var act = () => _service.DepositAsync(
-            new IDepositMoneyUseCase.Command(Guid.NewGuid(), id, TransactionAmount.Of(100m, Currency.USD)));
+            new ICustomerAccountPort.DepositCommand(Guid.NewGuid(), id, TransactionAmount.Of(100m, Currency.USD)));
 
         await act.Should().ThrowAsync<AccountNotFoundException>();
     }
@@ -133,7 +133,7 @@ public class AccountApplicationServiceTests
         var a = GivenChecking(owner, 100m);
 
         var act = () => _service.WithdrawAsync(
-            new IWithdrawMoneyUseCase.Command(owner, a.Id, TransactionAmount.Of(500m, Currency.USD)));
+            new ICustomerAccountPort.WithdrawCommand(owner, a.Id, TransactionAmount.Of(500m, Currency.USD)));
 
         await act.Should().ThrowAsync<InsufficientFundsException>();
     }
@@ -146,7 +146,7 @@ public class AccountApplicationServiceTests
         a.Freeze();
 
         var act = () => _service.WithdrawAsync(
-            new IWithdrawMoneyUseCase.Command(owner, a.Id, TransactionAmount.Of(10m, Currency.USD)));
+            new ICustomerAccountPort.WithdrawCommand(owner, a.Id, TransactionAmount.Of(10m, Currency.USD)));
 
         await act.Should().ThrowAsync<AccountNotOperableException>();
     }
@@ -161,7 +161,7 @@ public class AccountApplicationServiceTests
         var tgt = GivenChecking(owner);
         _settings.GetTransferFeePercentAsync().Returns(1.0m);
 
-        await _service.TransferAsync(new ITransferMoneyUseCase.Command(
+        await _service.TransferAsync(new ICustomerAccountPort.TransferCommand(
             owner, src.Id, tgt.Id, TransactionAmount.Of(200m, Currency.USD)));
 
         src.Balance.Amount.Should().Be(300m);   // no fee
@@ -177,7 +177,7 @@ public class AccountApplicationServiceTests
         var tgt = GivenChecking(recipient);
         _settings.GetTransferFeePercentAsync().Returns(1.0m);
 
-        await _service.TransferAsync(new ITransferMoneyUseCase.Command(
+        await _service.TransferAsync(new ICustomerAccountPort.TransferCommand(
             sender, src.Id, tgt.Id, TransactionAmount.Of(200m, Currency.USD)));
 
         src.Balance.Amount.Should().Be(798m);   // 200 + 1% fee
@@ -193,7 +193,7 @@ public class AccountApplicationServiceTests
         var tgt = GivenChecking(recipient);
         _settings.GetTransferFeePercentAsync().Returns(1.0m);
 
-        await _service.TransferAsync(new ITransferMoneyUseCase.Command(
+        await _service.TransferAsync(new ICustomerAccountPort.TransferCommand(
             sender, src.Id, tgt.Id, TransactionAmount.Of(200m, Currency.USD)));
 
         src.Balance.Amount.Should().Be(799m);   // 1% x 0.5 = 1.00 fee
@@ -207,7 +207,7 @@ public class AccountApplicationServiceTests
         var src = GivenChecking(sender, 10000m);
         var tgt = GivenChecking(recipient);
 
-        var act = () => _service.TransferAsync(new ITransferMoneyUseCase.Command(
+        var act = () => _service.TransferAsync(new ICustomerAccountPort.TransferCommand(
             sender, src.Id, tgt.Id, TransactionAmount.Of(5001m, Currency.USD)));
 
         await act.Should().ThrowAsync<LimitExceededException>();
@@ -220,7 +220,7 @@ public class AccountApplicationServiceTests
         var a = GivenChecking(owner, 10000m);
 
         var act = () => _service.WithdrawAsync(
-            new IWithdrawMoneyUseCase.Command(owner, a.Id, TransactionAmount.Of(5001m, Currency.USD)));
+            new ICustomerAccountPort.WithdrawCommand(owner, a.Id, TransactionAmount.Of(5001m, Currency.USD)));
 
         await act.Should().ThrowAsync<LimitExceededException>();
     }
@@ -282,7 +282,7 @@ public class AccountApplicationServiceTests
         _accounts.FindByIdAsync(s.Id).Returns(s);
 
         var tx = await _service.AccrueInterestAsync(
-            new IAccrueInterestUseCase.Command(s.Id, 2026, 4));
+            new IAccountAdministrationPort.AccrueInterestCommand(s.Id, 2026, 4));
 
         tx.Type.Should().Be(TransactionType.INTEREST);
         s.Balance.Amount.Should().BeGreaterThan(1000m);
@@ -294,7 +294,7 @@ public class AccountApplicationServiceTests
         var a = GivenChecking(GivenCustomer());
 
         var act = () => _service.AccrueInterestAsync(
-            new IAccrueInterestUseCase.Command(a.Id, 2026, 4));
+            new IAccountAdministrationPort.AccrueInterestCommand(a.Id, 2026, 4));
 
         await act.Should().ThrowAsync<InvalidAccountOperationException>();
     }
@@ -304,7 +304,7 @@ public class AccountApplicationServiceTests
     {
         var a = GivenChecking(GivenCustomer());
 
-        var act = () => _service.MatureAsync(new IMatureTimeDepositUseCase.Command(a.Id));
+        var act = () => _service.MatureAsync(new IAccountAdministrationPort.MatureCommand(a.Id));
 
         await act.Should().ThrowAsync<InvalidAccountOperationException>();
     }
@@ -314,7 +314,7 @@ public class AccountApplicationServiceTests
     [Fact]
     public async Task Stores_the_transfer_fee_percent()
     {
-        await _service.SetTransferFeeAsync(new ISetTransferFeeUseCase.Command(2.5m));
+        await _service.SetTransferFeeAsync(new IBankSettingsPort.SetTransferFeeCommand(2.5m));
 
         await _settings.Received(1).SetTransferFeePercentAsync(2.5m);
     }
@@ -322,7 +322,7 @@ public class AccountApplicationServiceTests
     [Fact]
     public async Task Rejects_a_negative_transfer_fee_percent()
     {
-        var act = () => _service.SetTransferFeeAsync(new ISetTransferFeeUseCase.Command(-0.01m));
+        var act = () => _service.SetTransferFeeAsync(new IBankSettingsPort.SetTransferFeeCommand(-0.01m));
 
         await act.Should().ThrowAsync<ArgumentException>();
         await _settings.DidNotReceive().SetTransferFeePercentAsync(Arg.Any<decimal>());
@@ -339,7 +339,7 @@ public class AccountApplicationServiceTests
         _accounts.FindByIdAsync(td.Id).Returns(td);
 
         var act = () => _service.DepositAsync(
-            new IDepositMoneyUseCase.Command(owner, td.Id, TransactionAmount.Of(10m, Currency.USD)));
+            new ICustomerAccountPort.DepositCommand(owner, td.Id, TransactionAmount.Of(10m, Currency.USD)));
 
         await act.Should().ThrowAsync<InvalidAccountOperationException>();
     }

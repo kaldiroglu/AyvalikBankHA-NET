@@ -38,7 +38,7 @@ public class AccountOwnershipTests
         var intruder = Guid.NewGuid();
 
         var act = async () => await service.DepositAsync(
-            new IDepositMoneyUseCase.Command(intruder, account.Id, TransactionAmount.Of(100m, Currency.USD)));
+            new ICustomerAccountPort.DepositCommand(intruder, account.Id, TransactionAmount.Of(100m, Currency.USD)));
 
         await act.Should().ThrowAsync<Api.Application.Exception.UnauthorizedAccessException>();
         await accounts.DidNotReceive().SaveAsync(Arg.Any<Account>());
@@ -51,7 +51,7 @@ public class AccountOwnershipTests
         var intruder = Guid.NewGuid();
 
         var act = async () => await service.WithdrawAsync(
-            new IWithdrawMoneyUseCase.Command(intruder, account.Id, TransactionAmount.Of(10m, Currency.USD)));
+            new ICustomerAccountPort.WithdrawCommand(intruder, account.Id, TransactionAmount.Of(10m, Currency.USD)));
 
         await act.Should().ThrowAsync<Api.Application.Exception.UnauthorizedAccessException>();
         await accounts.DidNotReceive().SaveAsync(Arg.Any<Account>());
@@ -65,7 +65,7 @@ public class AccountOwnershipTests
         var target = GivenAccountOwnedBy(intruder);
 
         var act = async () => await service.TransferAsync(
-            new ITransferMoneyUseCase.Command(intruder, source.Id, target.Id, TransactionAmount.Of(10m, Currency.USD)));
+            new ICustomerAccountPort.TransferCommand(intruder, source.Id, target.Id, TransactionAmount.Of(10m, Currency.USD)));
 
         await act.Should().ThrowAsync<Api.Application.Exception.UnauthorizedAccessException>();
         await accounts.DidNotReceive().SaveAsync(Arg.Any<Account>());
@@ -112,7 +112,7 @@ public class AccountOwnershipTests
         settings.GetTransferFeePercentAsync().Returns(1.0m);
 
         await service.TransferAsync(
-            new ITransferMoneyUseCase.Command(sender, source.Id, target.Id, TransactionAmount.Of(100m, Currency.USD)));
+            new ICustomerAccountPort.TransferCommand(sender, source.Id, target.Id, TransactionAmount.Of(100m, Currency.USD)));
 
         target.Balance.Amount.Should().Be(100m);
     }

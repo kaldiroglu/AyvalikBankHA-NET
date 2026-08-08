@@ -12,39 +12,27 @@ public class AccountApplicationService(
     ITransactionRepositoryPort transactionRepository,
     ISettingsRepositoryPort settingsRepository,
     TransferDomainService transferDomainService) :
-    IOpenCheckingAccountUseCase,
-    IOpenSavingsAccountUseCase,
-    IOpenTimeDepositAccountUseCase,
-    IDepositMoneyUseCase,
-    IWithdrawMoneyUseCase,
-    ITransferMoneyUseCase,
-    IGetBalanceUseCase,
-    IGetTransactionsUseCase,
-    IListAccountsUseCase,
-    IFreezeAccountUseCase,
-    IUnfreezeAccountUseCase,
-    ICloseAccountUseCase,
-    IAccrueInterestUseCase,
-    IMatureTimeDepositUseCase,
-    ISetTransferFeeUseCase
+    ICustomerAccountPort,
+    IAccountAdministrationPort,
+    IBankSettingsPort
 {
     // ── Account opening ───────────────────────────────────────────────────
 
-    public async Task<CheckingAccount> OpenCheckingAsync(IOpenCheckingAccountUseCase.Command cmd)
+    public async Task<CheckingAccount> OpenCheckingAsync(ICustomerAccountPort.OpenCheckingCommand cmd)
     {
         await RequireCustomerExistsAsync(cmd.CallerId);
         var account = CheckingAccount.Open(cmd.CallerId, cmd.Currency, cmd.OverdraftLimit);
         return (CheckingAccount)await accountRepository.SaveAsync(account);
     }
 
-    public async Task<SavingsAccount> OpenSavingsAsync(IOpenSavingsAccountUseCase.Command cmd)
+    public async Task<SavingsAccount> OpenSavingsAsync(ICustomerAccountPort.OpenSavingsCommand cmd)
     {
         await RequireCustomerExistsAsync(cmd.CallerId);
         var account = SavingsAccount.Open(cmd.CallerId, cmd.Currency, cmd.AnnualInterestRate);
         return (SavingsAccount)await accountRepository.SaveAsync(account);
     }
 
-    public async Task<TimeDepositAccount> OpenTimeDepositAsync(IOpenTimeDepositAccountUseCase.Command cmd)
+    public async Task<TimeDepositAccount> OpenTimeDepositAsync(ICustomerAccountPort.OpenTimeDepositCommand cmd)
     {
         await RequireCustomerExistsAsync(cmd.CallerId);
         var account = TimeDepositAccount.Open(cmd.CallerId, cmd.Currency, cmd.Principal,
@@ -54,7 +42,7 @@ public class AccountApplicationService(
 
     // ── Operations ────────────────────────────────────────────────────────
 
-    public async Task<Transaction> DepositAsync(IDepositMoneyUseCase.Command cmd)
+    public async Task<Transaction> DepositAsync(ICustomerAccountPort.DepositCommand cmd)
     {
         var account = await Find(cmd.AccountId);
         RequireOwner(account, cmd.CallerId);
@@ -65,7 +53,7 @@ public class AccountApplicationService(
         return await transactionRepository.SaveAsync(tx);
     }
 
-    public async Task<Transaction> WithdrawAsync(IWithdrawMoneyUseCase.Command cmd)
+    public async Task<Transaction> WithdrawAsync(ICustomerAccountPort.WithdrawCommand cmd)
     {
         var account = await Find(cmd.AccountId);
         RequireOwner(account, cmd.CallerId);
@@ -80,7 +68,7 @@ public class AccountApplicationService(
         return await transactionRepository.SaveAsync(tx);
     }
 
-    public async Task TransferAsync(ITransferMoneyUseCase.Command cmd)
+    public async Task TransferAsync(ICustomerAccountPort.TransferCommand cmd)
     {
         var source = await Find(cmd.SourceAccountId);
         RequireOwner(source, cmd.CallerId);
@@ -154,7 +142,7 @@ public class AccountApplicationService(
         await accountRepository.SaveAsync(account);
     }
 
-    public async Task<Transaction> AccrueInterestAsync(IAccrueInterestUseCase.Command cmd)
+    public async Task<Transaction> AccrueInterestAsync(IAccountAdministrationPort.AccrueInterestCommand cmd)
     {
         var account = await Find(cmd.AccountId);
         if (account is not SavingsAccount savings)
@@ -166,7 +154,7 @@ public class AccountApplicationService(
         return await transactionRepository.SaveAsync(tx);
     }
 
-    public async Task<Transaction> MatureAsync(IMatureTimeDepositUseCase.Command cmd)
+    public async Task<Transaction> MatureAsync(IAccountAdministrationPort.MatureCommand cmd)
     {
         var account = await Find(cmd.AccountId);
         if (account is not TimeDepositAccount td)
@@ -178,7 +166,7 @@ public class AccountApplicationService(
         return await transactionRepository.SaveAsync(tx);
     }
 
-    public Task SetTransferFeeAsync(ISetTransferFeeUseCase.Command cmd)
+    public Task SetTransferFeeAsync(IBankSettingsPort.SetTransferFeeCommand cmd)
     {
         // Defence in depth. The DTO's [Range] already rejects a negative percentage over REST, so
         // this guard is unreachable from the API - which is exactly why it needs its own test.

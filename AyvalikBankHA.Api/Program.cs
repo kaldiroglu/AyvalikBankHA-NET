@@ -28,30 +28,17 @@ builder.Services.AddSingleton<IPasswordHasherPort, BCryptPasswordHasherAdapter>(
 builder.Services.AddSingleton<PasswordValidationService>();
 builder.Services.AddSingleton<TransferDomainService>();
 
-// Application services implement use-case interfaces
+// Application services implement the actor-shaped ports (see Refactorings entry 2).
+// Twenty registrations - one per single-method use case - became five.
 builder.Services.AddScoped<CustomerApplicationService>();
-builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as ICreateCustomerUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IDeleteCustomerUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IListCustomersUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IChangePasswordUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as IChangeCustomerTierUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as ICustomerAdministrationPort);
+builder.Services.AddScoped(sp => sp.GetRequiredService<CustomerApplicationService>() as ICustomerSelfServicePort);
 
 builder.Services.AddScoped<AccountApplicationService>();
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IOpenCheckingAccountUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IOpenSavingsAccountUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IOpenTimeDepositAccountUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IDepositMoneyUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IWithdrawMoneyUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ITransferMoneyUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IGetBalanceUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IGetTransactionsUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IListAccountsUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IFreezeAccountUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IUnfreezeAccountUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ICloseAccountUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IAccrueInterestUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IMatureTimeDepositUseCase);
-builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ISetTransferFeeUseCase);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as ICustomerAccountPort);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IAccountAdministrationPort);
+builder.Services.AddScoped(sp => sp.GetRequiredService<AccountApplicationService>() as IBankSettingsPort);
+
 
 // Auth
 builder.Services.AddAuthentication(BasicAuthHandler.SchemeName)
