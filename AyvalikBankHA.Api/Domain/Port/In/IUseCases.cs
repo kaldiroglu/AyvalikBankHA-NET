@@ -53,19 +53,19 @@ public interface IOpenTimeDepositAccountUseCase
 
 public interface IDepositMoneyUseCase
 {
-    record Command(Guid CallerId, Guid AccountId, Money Amount);
+    record Command(Guid CallerId, Guid AccountId, TransactionAmount Amount);
     Task<Transaction> DepositAsync(Command cmd);
 }
 
 public interface IWithdrawMoneyUseCase
 {
-    record Command(Guid CallerId, Guid AccountId, Money Amount);
+    record Command(Guid CallerId, Guid AccountId, TransactionAmount Amount);
     Task<Transaction> WithdrawAsync(Command cmd);
 }
 
 public interface ITransferMoneyUseCase
 {
-    record Command(Guid CallerId, Guid SourceAccountId, Guid TargetAccountId, Money Amount);
+    record Command(Guid CallerId, Guid SourceAccountId, Guid TargetAccountId, TransactionAmount Amount);
     Task TransferAsync(Command cmd);
 }
 

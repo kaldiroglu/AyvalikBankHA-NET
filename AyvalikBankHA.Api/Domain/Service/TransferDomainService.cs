@@ -4,27 +4,27 @@ namespace AyvalikBankHA.Api.Domain.Service;
 
 public class TransferDomainService
 {
-    public Money CalculateFee(Money amount, bool sameCustomer, decimal feePercent, CustomerTier sourceTier)
+    public Money CalculateFee(TransactionAmount amount, bool sameCustomer, decimal feePercent, CustomerTier sourceTier)
     {
         if (sameCustomer) return Money.Zero(amount.Currency);
         var scaledPercent = feePercent * sourceTier.FeeMultiplier();
-        var fee = Math.Round(amount.Amount * scaledPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        var fee = Math.Round(amount.Value.Amount * scaledPercent / 100m, 2, MidpointRounding.AwayFromZero);
         return new Money(fee, amount.Currency);
     }
 
-    public void RequireTransferWithinLimit(Money amount, CustomerTier tier)
+    public void RequireTransferWithinLimit(TransactionAmount amount, CustomerTier tier)
     {
         var cap = tier.MaxPerTransfer();
-        if (cap is not null && amount.Amount > cap.Value)
+        if (cap is not null && amount.Value.Amount > cap.Value)
             throw new TransactionLimitExceededException(
-                $"Transfer amount {amount.Amount} exceeds {tier} tier limit of {cap}");
+                $"Transfer amount {amount.Value.Amount} exceeds {tier} tier limit of {cap}");
     }
 
-    public void RequireWithdrawalWithinLimit(Money amount, CustomerTier tier)
+    public void RequireWithdrawalWithinLimit(TransactionAmount amount, CustomerTier tier)
     {
         var cap = tier.MaxPerWithdrawal();
-        if (cap is not null && amount.Amount > cap.Value)
+        if (cap is not null && amount.Value.Amount > cap.Value)
             throw new TransactionLimitExceededException(
-                $"Withdrawal amount {amount.Amount} exceeds {tier} tier limit of {cap}");
+                $"Withdrawal amount {amount.Value.Amount} exceeds {tier} tier limit of {cap}");
     }
 }

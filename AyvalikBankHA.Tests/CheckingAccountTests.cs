@@ -25,8 +25,8 @@ public class CheckingAccountTests
     public void WithdrawWithoutOverdraftRejectsOverdraw()
     {
         var a = CheckingAccount.Open(Guid.NewGuid(), Currency.USD);
-        a.Deposit(new Money(50m, Currency.USD));
-        var act = () => a.Withdraw(new Money(100m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(50m, Currency.USD));
+        var act = () => a.Withdraw(TransactionAmount.Of(100m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*Insufficient*");
     }
 
@@ -34,8 +34,8 @@ public class CheckingAccountTests
     public void WithdrawWithinOverdraftAllowsNegativeBalance()
     {
         var a = CheckingAccount.Open(Guid.NewGuid(), Currency.USD, new Money(200m, Currency.USD));
-        a.Deposit(new Money(50m, Currency.USD));
-        a.Withdraw(new Money(150m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(50m, Currency.USD));
+        a.Withdraw(TransactionAmount.Of(150m, Currency.USD));
         a.Balance.Amount.Should().Be(-100m);
     }
 
@@ -43,7 +43,7 @@ public class CheckingAccountTests
     public void WithdrawBeyondOverdraftThrows()
     {
         var a = CheckingAccount.Open(Guid.NewGuid(), Currency.USD, new Money(100m, Currency.USD));
-        var act = () => a.Withdraw(new Money(101m, Currency.USD));
+        var act = () => a.Withdraw(TransactionAmount.Of(101m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*overdraft*");
     }
 

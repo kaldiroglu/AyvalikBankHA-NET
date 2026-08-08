@@ -34,21 +34,21 @@ public abstract class Account
 
     // ── Operations: each subtype overrides ───────────────────────────────
 
-    public abstract Transaction Deposit(Money amount);
-    public abstract Transaction Withdraw(Money amount);
-    public abstract Transaction TransferOut(Money amount, Money fee, Guid targetAccountId);
+    public abstract Transaction Deposit(TransactionAmount amount);
+    public abstract Transaction Withdraw(TransactionAmount amount);
+    public abstract Transaction TransferOut(TransactionAmount amount, Money fee, Guid targetAccountId);
 
-    public Transaction TransferIn(Money amount, Guid sourceAccountId)
+    public Transaction TransferIn(TransactionAmount amount, Guid sourceAccountId)
     {
         State.RequireOperable();
         RequireSameCurrency(amount);
-        Balance = Balance.Add(amount);
-        return Transaction.Create(Id, TransactionType.TRANSFER_IN, amount, $"Transfer in from {sourceAccountId}");
+        Balance = Balance.Add(amount.Value);
+        return Transaction.Create(Id, TransactionType.TRANSFER_IN, amount.Value, $"Transfer in from {sourceAccountId}");
     }
 
     // ── Guards ────────────────────────────────────────────────────────────
 
-    protected void RequireSameCurrency(Money amount)
+    protected void RequireSameCurrency(TransactionAmount amount)
     {
         if (amount.Currency != Currency)
             throw new ArgumentException($"Currency {amount.Currency} does not match account currency {Currency}");

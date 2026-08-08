@@ -26,8 +26,8 @@ public class SavingsAccountTests
     public void WithdrawCannotGoNegative()
     {
         var a = SavingsAccount.Open(Guid.NewGuid(), Currency.USD, 0.05m);
-        a.Deposit(new Money(50m, Currency.USD));
-        var act = () => a.Withdraw(new Money(60m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(50m, Currency.USD));
+        var act = () => a.Withdraw(TransactionAmount.Of(60m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*Insufficient*");
     }
 
@@ -35,7 +35,7 @@ public class SavingsAccountTests
     public void AccrueInterestAddsMonthlyInterest()
     {
         var a = SavingsAccount.Open(Guid.NewGuid(), Currency.USD, 0.12m);
-        a.Deposit(new Money(1_000m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(1_000m, Currency.USD));
         var tx = a.AccrueInterest(2026, 4);
         // 12% annual / 12 = 1% monthly → 10.00 on 1000
         a.Balance.Amount.Should().Be(1_010m);
@@ -48,7 +48,7 @@ public class SavingsAccountTests
     public void AccrueInterestForSameMonthRejected()
     {
         var a = SavingsAccount.Open(Guid.NewGuid(), Currency.USD, 0.12m);
-        a.Deposit(new Money(1_000m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(1_000m, Currency.USD));
         a.AccrueInterest(2026, 4);
         var act = () => a.AccrueInterest(2026, 4);
         act.Should().Throw<InvalidOperationException>().WithMessage("*already accrued*");
@@ -67,7 +67,7 @@ public class SavingsAccountTests
     public void AccrueOnFrozenStillWorks()
     {
         var a = SavingsAccount.Open(Guid.NewGuid(), Currency.USD, 0.12m);
-        a.Deposit(new Money(1_000m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(1_000m, Currency.USD));
         a.Freeze();
         var tx = a.AccrueInterest(2026, 4);
         tx.Amount.Amount.Should().Be(10m);

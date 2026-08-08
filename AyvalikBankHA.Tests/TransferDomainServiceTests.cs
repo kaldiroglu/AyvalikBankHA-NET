@@ -12,28 +12,28 @@ public class TransferDomainServiceTests
     [Fact]
     public void SameCustomerIsFree()
     {
-        _service.CalculateFee(new Money(200m, Currency.USD), true, 1.0m, CustomerTier.STANDARD)
+        _service.CalculateFee(TransactionAmount.Of(200m, Currency.USD), true, 1.0m, CustomerTier.STANDARD)
             .Amount.Should().Be(0m);
     }
 
     [Fact]
     public void StandardTierAppliesFullPercent()
     {
-        _service.CalculateFee(new Money(200m, Currency.USD), false, 1.0m, CustomerTier.STANDARD)
+        _service.CalculateFee(TransactionAmount.Of(200m, Currency.USD), false, 1.0m, CustomerTier.STANDARD)
             .Amount.Should().Be(2m);
     }
 
     [Fact]
     public void PremiumTierAppliesHalfPercent()
     {
-        _service.CalculateFee(new Money(200m, Currency.USD), false, 1.0m, CustomerTier.PREMIUM)
+        _service.CalculateFee(TransactionAmount.Of(200m, Currency.USD), false, 1.0m, CustomerTier.PREMIUM)
             .Amount.Should().Be(1m);
     }
 
     [Fact]
     public void PrivateTierIsFree()
     {
-        _service.CalculateFee(new Money(10_000m, Currency.USD), false, 1.0m, CustomerTier.PRIVATE)
+        _service.CalculateFee(TransactionAmount.Of(10_000m, Currency.USD), false, 1.0m, CustomerTier.PRIVATE)
             .Amount.Should().Be(0m);
     }
 
@@ -41,7 +41,7 @@ public class TransferDomainServiceTests
     public void StandardTransferOverCapThrows()
     {
         var act = () => _service.RequireTransferWithinLimit(
-            new Money(5_001m, Currency.USD), CustomerTier.STANDARD);
+            TransactionAmount.Of(5_001m, Currency.USD), CustomerTier.STANDARD);
         act.Should().Throw<InvalidOperationException>().WithMessage("*5000*");
     }
 
@@ -49,7 +49,7 @@ public class TransferDomainServiceTests
     public void StandardTransferAtCapPasses()
     {
         var act = () => _service.RequireTransferWithinLimit(
-            new Money(5_000m, Currency.USD), CustomerTier.STANDARD);
+            TransactionAmount.Of(5_000m, Currency.USD), CustomerTier.STANDARD);
         act.Should().NotThrow();
     }
 
@@ -57,7 +57,7 @@ public class TransferDomainServiceTests
     public void PremiumTransferOverCapThrows()
     {
         var act = () => _service.RequireTransferWithinLimit(
-            new Money(50_001m, Currency.USD), CustomerTier.PREMIUM);
+            TransactionAmount.Of(50_001m, Currency.USD), CustomerTier.PREMIUM);
         act.Should().Throw<InvalidOperationException>().WithMessage("*50000*");
     }
 
@@ -65,7 +65,7 @@ public class TransferDomainServiceTests
     public void PrivateTransferHasNoCap()
     {
         var act = () => _service.RequireTransferWithinLimit(
-            new Money(10_000_000m, Currency.USD), CustomerTier.PRIVATE);
+            TransactionAmount.Of(10_000_000m, Currency.USD), CustomerTier.PRIVATE);
         act.Should().NotThrow();
     }
 
@@ -73,7 +73,7 @@ public class TransferDomainServiceTests
     public void StandardWithdrawalOverCapThrows()
     {
         var act = () => _service.RequireWithdrawalWithinLimit(
-            new Money(5_001m, Currency.USD), CustomerTier.STANDARD);
+            TransactionAmount.Of(5_001m, Currency.USD), CustomerTier.STANDARD);
         act.Should().Throw<InvalidOperationException>().WithMessage("*5000*");
     }
 
@@ -81,7 +81,7 @@ public class TransferDomainServiceTests
     public void PrivateWithdrawalHasNoCap()
     {
         var act = () => _service.RequireWithdrawalWithinLimit(
-            new Money(10_000_000m, Currency.USD), CustomerTier.PRIVATE);
+            TransactionAmount.Of(10_000_000m, Currency.USD), CustomerTier.PRIVATE);
         act.Should().NotThrow();
     }
 }

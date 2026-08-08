@@ -27,7 +27,7 @@ public class TimeDepositAccountTests
     public void DepositRejected()
     {
         var a = NewOneYearUsd();
-        var act = () => a.Deposit(new Money(100m, Currency.USD));
+        var act = () => a.Deposit(TransactionAmount.Of(100m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*locked*");
     }
 
@@ -36,7 +36,7 @@ public class TimeDepositAccountTests
     {
         var a = NewOneYearUsd();
         var act = () => a.TransferOut(
-            new Money(100m, Currency.USD), new Money(0m, Currency.USD), Guid.NewGuid());
+            TransactionAmount.Of(100m, Currency.USD), new Money(0m, Currency.USD), Guid.NewGuid());
         act.Should().Throw<InvalidOperationException>().WithMessage("*do not support transfers*");
     }
 
@@ -44,7 +44,7 @@ public class TimeDepositAccountTests
     public void WithdrawBeforeMaturityRejected()
     {
         var a = NewOneYearUsd();
-        var act = () => a.Withdraw(new Money(100m, Currency.USD));
+        var act = () => a.Withdraw(TransactionAmount.Of(100m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*not matured*");
     }
 
@@ -69,7 +69,7 @@ public class TimeDepositAccountTests
         tx.Amount.Amount.Should().Be(500m);
         a.Balance.Amount.Should().Be(10_500m);
 
-        a.Withdraw(new Money(2_000m, Currency.USD));
+        a.Withdraw(TransactionAmount.Of(2_000m, Currency.USD));
         a.Balance.Amount.Should().Be(8_500m);
     }
 

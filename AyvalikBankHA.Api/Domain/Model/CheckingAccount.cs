@@ -21,21 +21,19 @@ public sealed class CheckingAccount : Account
 
     public override AccountType Type => AccountType.CHECKING;
 
-    public override Transaction Deposit(Money amount)
+    public override Transaction Deposit(TransactionAmount amount)
     {
         RequireOperable();
         RequireSameCurrency(amount);
-        if (amount.Amount <= 0) throw new ArgumentException("Deposit amount must be positive");
-        Balance = Balance.Add(amount);
-        return Transaction.Create(Id, TransactionType.DEPOSIT, amount, "Deposit");
+        Balance = Balance.Add(amount.Value);
+        return Transaction.Create(Id, TransactionType.DEPOSIT, amount.Value, "Deposit");
     }
 
-    public override Transaction Withdraw(Money amount)
+    public override Transaction Withdraw(TransactionAmount amount)
     {
         RequireOperable();
         RequireSameCurrency(amount);
-        if (amount.Amount <= 0) throw new ArgumentException("Withdrawal amount must be positive");
-        var projected = Balance.Amount - amount.Amount;
+        var projected = Balance.Amount - amount.Value.Amount;
         var floor = -OverdraftLimit.Amount;
         if (projected < floor)
         {
@@ -44,20 +42,20 @@ public sealed class CheckingAccount : Account
             throw new InsufficientBalanceException("Withdrawal exceeds overdraft limit");
         }
         Balance = new Money(projected, Currency);
-        return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount, "Withdrawal");
+        return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount.Value, "Withdrawal");
     }
 
-    public override Transaction TransferOut(Money amount, Money fee, Guid targetAccountId)
+    public override Transaction TransferOut(TransactionAmount amount, Money fee, Guid targetAccountId)
     {
         RequireOperable();
         RequireSameCurrency(amount);
-        var totalDebit = fee.Amount > 0 ? amount.Add(fee) : amount;
+        var totalDebit = fee.Amount > 0 ? amount.Value.Add(fee) : amount.Value;
         var projected = Balance.Amount - totalDebit.Amount;
         var floor = -OverdraftLimit.Amount;
         if (projected < floor)
             throw new InsufficientBalanceException("Insufficient funds for transfer including fee");
         Balance = new Money(projected, Currency);
         var desc = $"Transfer out to {targetAccountId}" + (fee.Amount > 0 ? $" (fee: {fee.Amount})" : "");
-        return Transaction.Create(Id, TransactionType.TRANSFER_OUT, amount, desc);
+        return Transaction.Create(Id, TransactionType.TRANSFER_OUT, amount.Value, desc);
     }
 }

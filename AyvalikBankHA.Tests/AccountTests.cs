@@ -20,7 +20,7 @@ public class AccountTests
     public void DepositRaisesBalanceAndReturnsTransaction()
     {
         var a = NewUsd();
-        var tx = a.Deposit(new Money(500m, Currency.USD));
+        var tx = a.Deposit(TransactionAmount.Of(500m, Currency.USD));
         a.Balance.Amount.Should().Be(500m);
         tx.Type.Should().Be(TransactionType.DEPOSIT);
     }
@@ -29,8 +29,8 @@ public class AccountTests
     public void WithdrawDecreasesBalance()
     {
         var a = NewUsd();
-        a.Deposit(new Money(500m, Currency.USD));
-        a.Withdraw(new Money(200m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(500m, Currency.USD));
+        a.Withdraw(TransactionAmount.Of(200m, Currency.USD));
         a.Balance.Amount.Should().Be(300m);
     }
 
@@ -38,8 +38,8 @@ public class AccountTests
     public void WithdrawingMoreThanBalanceThrows()
     {
         var a = NewUsd();
-        a.Deposit(new Money(100m, Currency.USD));
-        var act = () => a.Withdraw(new Money(200m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(100m, Currency.USD));
+        var act = () => a.Withdraw(TransactionAmount.Of(200m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*Insufficient*");
     }
 
@@ -47,7 +47,7 @@ public class AccountTests
     public void DepositInWrongCurrencyThrows()
     {
         var a = NewUsd();
-        var act = () => a.Deposit(new Money(100m, Currency.EUR));
+        var act = () => a.Deposit(TransactionAmount.Of(100m, Currency.EUR));
         act.Should().Throw<ArgumentException>().WithMessage("*currency*");
     }
 
@@ -56,7 +56,7 @@ public class AccountTests
     {
         var a = NewUsd();
         a.Freeze();
-        var act = () => a.Deposit(new Money(100m, Currency.USD));
+        var act = () => a.Deposit(TransactionAmount.Of(100m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*frozen*");
     }
 
@@ -73,8 +73,8 @@ public class AccountTests
     public void TransferOutWithFeeDeductsTotal()
     {
         var a = NewUsd();
-        a.Deposit(new Money(1000m, Currency.USD));
-        a.TransferOut(new Money(200m, Currency.USD), new Money(2m, Currency.USD), Guid.NewGuid());
+        a.Deposit(TransactionAmount.Of(1000m, Currency.USD));
+        a.TransferOut(TransactionAmount.Of(200m, Currency.USD), new Money(2m, Currency.USD), Guid.NewGuid());
         a.Balance.Amount.Should().Be(798m);
     }
 }

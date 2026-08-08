@@ -36,22 +36,21 @@ public sealed class TimeDepositAccount : Account
 
     public override AccountType Type => AccountType.TIME_DEPOSIT;
 
-    public override Transaction Deposit(Money amount) =>
+    public override Transaction Deposit(TransactionAmount amount) =>
         throw new OperationNotPermittedException("Time deposit principal is locked — further deposits are not allowed");
 
-    public override Transaction TransferOut(Money amount, Money fee, Guid targetAccountId) =>
+    public override Transaction TransferOut(TransactionAmount amount, Money fee, Guid targetAccountId) =>
         throw new OperationNotPermittedException("Time deposit accounts do not support transfers");
 
-    public override Transaction Withdraw(Money amount)
+    public override Transaction Withdraw(TransactionAmount amount)
     {
         RequireOperable();
         if (!Matured) throw new OperationNotPermittedException("Time deposit has not matured");
         RequireSameCurrency(amount);
-        if (amount.Amount <= 0) throw new ArgumentException("Withdrawal amount must be positive");
-        if (!Balance.IsGreaterThanOrEqualTo(amount))
+        if (!Balance.IsGreaterThanOrEqualTo(amount.Value))
             throw new InsufficientBalanceException("Insufficient funds");
-        Balance = Balance.Subtract(amount);
-        return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount, "Withdrawal");
+        Balance = Balance.Subtract(amount.Value);
+        return Transaction.Create(Id, TransactionType.WITHDRAWAL, amount.Value, "Withdrawal");
     }
 
     public Transaction Mature(DateOnly today)

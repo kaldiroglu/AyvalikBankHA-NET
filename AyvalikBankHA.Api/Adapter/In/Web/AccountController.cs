@@ -69,7 +69,7 @@ public class AccountController(
     public async Task<IActionResult> Deposit(Guid accountId, [FromBody] MoneyOperationRequest req)
     {
         var tx = await depositMoney.DepositAsync(new IDepositMoneyUseCase.Command(CallerId, accountId,
-            new Money(req.Amount, req.Currency)));
+            TransactionAmount.Of(req.Amount, req.Currency)));
         return StatusCode(201, TransactionResponse.From(tx));
     }
 
@@ -77,7 +77,7 @@ public class AccountController(
     public async Task<IActionResult> Withdraw(Guid accountId, [FromBody] MoneyOperationRequest req)
     {
         var tx = await withdrawMoney.WithdrawAsync(new IWithdrawMoneyUseCase.Command(CallerId, accountId,
-            new Money(req.Amount, req.Currency)));
+            TransactionAmount.Of(req.Amount, req.Currency)));
         return StatusCode(201, TransactionResponse.From(tx));
     }
 
@@ -85,7 +85,7 @@ public class AccountController(
     public async Task<IActionResult> Transfer(Guid accountId, [FromBody] TransferRequest req)
     {
         await transferMoney.TransferAsync(new ITransferMoneyUseCase.Command(CallerId, accountId, req.TargetAccountId,
-            new Money(req.Amount, req.Currency)));
+            TransactionAmount.Of(req.Amount, req.Currency)));
         return Ok();
     }
 

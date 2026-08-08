@@ -83,7 +83,7 @@ public class AccountStateTests
     {
         var a = NewActive();
         a.Freeze();
-        var act = () => a.Deposit(new Money(100m, Currency.USD));
+        var act = () => a.Deposit(TransactionAmount.Of(100m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*frozen*");
     }
 
@@ -91,9 +91,9 @@ public class AccountStateTests
     public void FrozenBlocksWithdraw()
     {
         var a = NewActive();
-        a.Deposit(new Money(100m, Currency.USD));
+        a.Deposit(TransactionAmount.Of(100m, Currency.USD));
         a.Freeze();
-        var act = () => a.Withdraw(new Money(50m, Currency.USD));
+        var act = () => a.Withdraw(TransactionAmount.Of(50m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*frozen*");
     }
 
@@ -102,7 +102,7 @@ public class AccountStateTests
     {
         var a = NewActive();
         a.Close();
-        var act = () => a.Deposit(new Money(100m, Currency.USD));
+        var act = () => a.Deposit(TransactionAmount.Of(100m, Currency.USD));
         act.Should().Throw<InvalidOperationException>().WithMessage("*closed*");
     }
 }
