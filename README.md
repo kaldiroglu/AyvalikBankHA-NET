@@ -1,13 +1,15 @@
 # Ayvalık Bank HA-NET
 
-A banking application built as a learning project to demonstrate **Hexagonal Architecture (Ports & Adapters)** in **.NET 9 / ASP.NET Core**. .NET counterpart to `AyvalikBankHA-JAVA` (Java/Spring Boot).
+A banking application built as a learning project to demonstrate **Hexagonal Architecture (Ports & Adapters)** in **.NET 10 / ASP.NET Core**. .NET counterpart to `AyvalikBankHA-JAVA` (Java/Spring Boot).
+
+For further enquiry please contact Akin Kaldiroglu at akin@kaldiroglu.dev
 
 ## Tech Stack
 
 | Concern | Technology |
 |---------|-----------|
-| Runtime | .NET 9 |
-| Framework | ASP.NET Core 9 (Web API) |
+| Runtime | .NET 10 |
+| Framework | ASP.NET Core 10 (Web API) |
 | Persistence | EF Core 9 + Npgsql (PostgreSQL) |
 | Security | Custom Basic Auth handler |
 | Validation | DataAnnotations |
@@ -19,10 +21,15 @@ A banking application built as a learning project to demonstrate **Hexagonal Arc
 
 ```bash
 docker compose up -d
-dotnet run --project AyvalikBankHA.Api
+/Users/akin/.dotnet/dotnet run --project AyvalikBankHA.Api --urls http://localhost:5080
 ```
 
+Then open **http://localhost:5080/swagger**.
+
 Default admin: `admin@ayvalikbank.dev` / `Admin@123!` (seeded on first startup)
+
+See [Run it with](#run-it-with) at the end of this file for the full story — why the
+`dotnet` path is spelled out, why `--urls` is required, and how to reach every endpoint.
 
 ## Project Layout (hexagonal)
 
@@ -76,9 +83,9 @@ AyvalikBankHA.Tests/
 | PUT | `/api/admin/accounts/{id}/accrue-interest` | ADMIN |
 | PUT | `/api/admin/accounts/{id}/mature` | ADMIN |
 | PUT | `/api/customers/{id}/password` | CUSTOMER |
-| POST | `/api/accounts/checking?ownerId=` | CUSTOMER |
-| POST | `/api/accounts/savings?ownerId=` | CUSTOMER |
-| POST | `/api/accounts/time-deposit?ownerId=` | CUSTOMER |
+| POST | `/api/accounts/checking` | CUSTOMER |
+| POST | `/api/accounts/savings` | CUSTOMER |
+| POST | `/api/accounts/time-deposit` | CUSTOMER |
 | GET | `/api/customers/{id}/accounts` | CUSTOMER |
 | GET | `/api/accounts/{id}/balance` | CUSTOMER |
 | POST | `/api/accounts/{id}/deposit` | CUSTOMER |
@@ -88,10 +95,126 @@ AyvalikBankHA.Tests/
 
 ## Test coverage
 
-66 unit tests (xUnit + FluentAssertions), covering:
+103 unit tests (xUnit + FluentAssertions), covering:
 - Money arithmetic and currency guards
 - Password validation
 - Account state transitions (State pattern)
 - Per-subtype invariants: checking overdraft, savings monthly accrual, time-deposit lock + maturation
 - TransferDomainService tier-aware fees and per-transaction limits
 - Customer tier mutation
+
+## Run it with
+
+### Prerequisites
+
+**Use the full path to the .NET 10 SDK.** This project targets `net10.0`. On this machine
+`dotnet` on the `PATH` resolves to `/usr/local/share/dotnet/dotnet`, which carries SDKs 6.0
+through 9.0 and no 10.0 — building with it fails:
+
+```
+error NETSDK1045: The current .NET SDK does not support targeting .NET 10.0.
+```
+
+The .NET 10 SDK (10.0.102) lives in a separate per-user install at `/Users/akin/.dotnet`.
+The two installs are independent: each `dotnet` binary finds SDKs in its own `sdk/` folder
+and runtimes in its own `shared/` folder, and never sees the other's. Putting `~/.dotnet`
+first on the `PATH` is *not* a safe fix — it only carries the 9.0 and 10.0 runtimes, so
+projects targeting `net6.0`–`net8.0` would then fail to start.
+
+Docker is also needed for PostgreSQL. If `docker compose` reports a socket error, Docker
+Desktop has stopped — `open -a Docker`, wait for it, and retry.
+
+### Run the tests
+
+```bash
+/Users/akin/.dotnet/dotnet test
+```
+
+103 tests, no database required — the service tests use the EF Core InMemory provider.
+
+### Run the application
+
+```bash
+cd AyvalikBankHA-NET
+docker compose up -d                                    # PostgreSQL, host port 5434
+/Users/akin/.dotnet/dotnet run --project AyvalikBankHA.Api --urls http://localhost:5080
+```
+
+Wait for `Now listening on: http://localhost:5080` in the output.
+
+**`--urls` is required.** This project has no `Properties/launchSettings.json`, so nothing
+declares a port; without the flag Kestrel falls back to its own default of
+`http://localhost:5000`. Port 5080 is simply the convention used here — any free port works,
+as long as you use the same one in the URLs below. The missing `launchSettings.json` also
+means `ASPNETCORE_ENVIRONMENT` is unset, so the app starts in **Production**, not
+Development. Swagger still works because `Program.cs` calls `UseSwagger()` unconditionally
+rather than behind an `IsDevelopment()` guard.
+
+### Reach it
+
+| What | Where |
+|---|---|
+| Swagger UI | http://localhost:5080/swagger |
+| OpenAPI document | http://localhost:5080/swagger/v1/swagger.json |
+| API root | http://localhost:5080/api/... |
+| PostgreSQL | `localhost:5434`, database `ayvalikbank_ha_net`, user `bankuser` / `bankpass` |
+
+There is **no route at `/`** — browsing to http://localhost:5080 returns 404. That is not a
+failure; go to `/swagger`.
+
+Every endpoint requires HTTP Basic authentication. The seeded admin is the **full email
+address**, not a username:
+
+```
+admin@ayvalikbank.dev / Admin@123!
+```
+
+In Swagger UI, click **Authorize**, enter those two values, then use *Try it out* on any
+endpoint. From the shell:
+
+```bash
+# Should return the customer list
+curl -u 'admin@ayvalikbank.dev:Admin@123!' http://localhost:5080/api/admin/customers
+
+# Should return 401 — proves authentication is actually enforced
+curl -i http://localhost:5080/api/admin/customers
+```
+
+### Run the shared contract suite against it
+
+The same black-box HTTP suite runs against all six Ayvalık Bank repos. From the
+`AyvalikBankContractTests` checkout, with this app already running:
+
+```bash
+BANK_BASE_URL=http://localhost:5080 pytest tests/
+```
+
+### Stop it, and start from a clean database
+
+`Ctrl+C` stops the application. To stop PostgreSQL but keep the data:
+
+```bash
+docker compose down
+```
+
+The schema is created by `EnsureCreatedAsync()` in `AdminSeeder`; there are no EF Core
+migrations. `EnsureCreated` is create-or-nothing — it builds the schema when the database is
+empty and never alters an existing one. So after changing an entity, or when accumulated
+test data gets in the way, drop the volume and let it rebuild:
+
+```bash
+docker compose down -v && docker compose up -d
+```
+
+The admin is re-seeded automatically on the next startup.
+
+### Running both .NET banks at once
+
+HA-NET and LA-NET are deliberately non-colliding — different application ports, different
+PostgreSQL host ports, different databases and volumes — so both can run side by side for
+comparison:
+
+| Repo | App | PostgreSQL | Database |
+|---|---|---|---|
+| `AyvalikBankHA-NET` | 5080 | 5434 | `ayvalikbank_ha_net` |
+| `AyvalikBankLA-NET` | 5050 | 5433 | `ayvalikbank_la_net` |
