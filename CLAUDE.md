@@ -16,6 +16,7 @@ the change belongs in all six.
 - Wire format is **camelCase**; validation failures are **400** (not FastAPI's default 422).
 - Enums travel as **strings** (`"USD"`), never numbers.
 - Refactoring write-ups live in `Refactorings.md`; the Java hexagonal repo is the reference.
+- The suite is 29 tests; all six implementations currently pass 29/29.
 
 ## Commands
 
@@ -24,7 +25,7 @@ the change belongs in all six.
 # Shared contract suite (from AyvalikBankContractTests):
 #   BANK_BASE_URL=http://localhost:5080 pytest tests/
 
-docker compose up -d                         # Postgres on port 5434
+docker compose up -d                         # Postgres on port 5434, database ayvalikbank_ha_net
 /Users/akin/.dotnet/dotnet build
 /Users/akin/.dotnet/dotnet test
 # No launchSettings.json here — name the port explicitly: --urls http://localhost:5080
@@ -41,6 +42,17 @@ docker compose up -d                         # Postgres on port 5434
 - **`[Range(typeof(decimal), "0.01", ...)]` parses its bounds with the current culture** — always pass
   `ParseLimitsInInvariantCulture = true`, or every request fails on a comma-decimal locale.
 - **Docker Desktop** stops on its own; if compose fails with a socket error, `open -a Docker` and wait.
+
+## Ports and databases
+
+This repo: app **5080**, PostgreSQL **5434**, database `ayvalikbank_ha_net`.
+
+All six repos take distinct application and PostgreSQL ports so every one can run at the same
+time; `README.md` carries the full table. **5432 is deliberately unused** — it is the default for
+a native PostgreSQL (Postgres.app, Homebrew), and an application pointed at it connects to that
+server instead of its own container, with no error to say so. Every compose service sets an
+explicit `container_name`: without one Compose derives a name from the directory, and a container
+can outlive the checkout that defined it while still holding its port.
 
 ## Architecture
 
